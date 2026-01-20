@@ -15,7 +15,7 @@ jobs:
 
       # 2. Tailscaleに接続
       - name: Connect to Tailscale
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v3
         with:
           # Auth Keyを使う場合はこちら (今回はこっち推奨)
           authkey: ${{ vars.TAILSCALE_AUTHKEY }}
