@@ -17,7 +17,7 @@ jobs:
       - name: Connect to Tailscale
         uses: tailscale/github-action@v3
         with:
-          oauth-client-id: ${{ vars.TS_OAUTH_CLIENT_ID }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
           version: latest
@@ -29,7 +29,7 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           # Tailscale IPのホストキー確認をスキップする設定
-          echo "Host ${{ vars.SSH_HOST }}" >> ~/.ssh/config
+          echo "Host ${{ secrets.SSH_HOST }}" >> ~/.ssh/config
           echo "  StrictHostKeyChecking no" >> ~/.ssh/config
           echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
@@ -37,11 +37,11 @@ jobs:
       - name: Deploy
         run: |
           # 接続確認
-          ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "echo 'Connection successful!'"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo 'Connection successful!'"
 
           # ここに実際のデプロイコマンドを書く
           # 例: リポジトリをcloneしてDocker起動
-          ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} << 'EOF'
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             # 任意のディレクトリに移動 (なければ作る)
             mkdir -p /opt/app
             cd /opt/app
