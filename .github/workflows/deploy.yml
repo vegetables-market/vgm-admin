@@ -1,0 +1,63 @@
+name: Deploy to Proxmox
+
+on:
+  push:
+    branches:
+      - main  # mainブランチにpushされたら実行
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. コードを取得
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Tailscaleに接続
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }} # もしOAuth使うなら
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}       # もしOAuth使うなら
+          # Auth Keyを使う場合はこちら (今回はこっち推奨)
+          authkey: ${{ vars.TAILSCALE_AUTHKEY }}
+          version: latest
+
+      # 3. SSHの設定 (秘密鍵をセット)
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ vars.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Tailscale IPのホストキー確認をスキップする設定
+          echo "Host ${{ vars.SSH_HOST }}" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
+      # 4. デプロイ実行 (SSHでコマンドを叩く)
+      - name: Deploy
+        run: |
+          # 接続確認
+          ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} "echo 'Connection successful!'"
+
+          # ここに実際のデプロイコマンドを書く
+          # 例: リポジトリをcloneしてDocker起動
+          ssh ${{ vars.SSH_USER }}@${{ vars.SSH_HOST }} << 'EOF'
+            # 任意のディレクトリに移動 (なければ作る)
+            mkdir -p /opt/app
+            cd /opt/app
+            
+            # (初回のみ) git cloneが必要なら手動でやるか、ここで判定を入れる
+            # ここでは簡易的に git pull -> docker up の流れ
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/${{ github.repository }} .
+            else
+              git pull origin main
+            fi
+
+            # Docker Compose で起動 (ビルドが必要なら --build)
+            docker compose up -d --build
+            
+            # 掃除
+            docker image prune -f
+          EOF
