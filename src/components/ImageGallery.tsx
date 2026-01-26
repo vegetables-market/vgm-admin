@@ -52,14 +52,25 @@ export default function ImageGallery() {
     return key.split("/").pop() || key;
   };
 
-  const copyToClipboard = async (url: string) => {
+  const [copiedType, setCopiedType] = useState<string | null>(null);
+
+  const copyToClipboard = async (text: string, type: string) => {
     try {
-      await navigator.clipboard.writeText(url);
-      alert("URLをコピーしました");
+      await navigator.clipboard.writeText(text);
+      setCopiedType(type);
+      setTimeout(() => setCopiedType(null), 2000);
     } catch {
       alert("コピーに失敗しました");
     }
   };
+
+  const generateEmbedCode = (url: string, alt: string) => ({
+    url: url,
+    html: `<img src="${url}" alt="${alt}" />`,
+    markdown: `![${alt}](${url})`,
+    htmlIcon: `<img src="${url}" alt="${alt}" class="w-10 h-10 rounded-full object-cover" />`,
+    htmlProduct: `<img src="${url}" alt="${alt}" class="w-full max-w-md rounded-lg object-cover" />`,
+  });
 
   if (loading) {
     return (
@@ -161,33 +172,108 @@ export default function ImageGallery() {
                 className="w-full max-h-[50vh] object-contain rounded-lg bg-zinc-100 dark:bg-zinc-800"
               />
             </div>
-            <div className="p-4 border-t border-zinc-200 dark:border-zinc-700 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">サイズ:</span>
-                <span className="text-zinc-900 dark:text-zinc-100">{formatFileSize(selectedImage.size)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-zinc-500">更新日時:</span>
-                <span className="text-zinc-900 dark:text-zinc-100">{formatDate(selectedImage.lastModified)}</span>
-              </div>
-              <div className="pt-2">
-                <p className="text-sm text-zinc-500 mb-1">URL:</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={selectedImage.url}
-                    readOnly
-                    className="flex-1 text-xs bg-zinc-100 dark:bg-zinc-800 rounded px-2 py-1.5 text-zinc-700 dark:text-zinc-300"
-                  />
-                  <button
-                    onClick={() => copyToClipboard(selectedImage.url)}
-                    className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  >
-                    コピー
-                  </button>
+            <div className="p-4 border-t border-zinc-200 dark:border-zinc-700 space-y-4">
+              <div className="flex gap-4 text-sm">
+                <div>
+                  <span className="text-zinc-500">サイズ:</span>
+                  <span className="ml-2 text-zinc-900 dark:text-zinc-100">{formatFileSize(selectedImage.size)}</span>
+                </div>
+                <div>
+                  <span className="text-zinc-500">更新日時:</span>
+                  <span className="ml-2 text-zinc-900 dark:text-zinc-100">{formatDate(selectedImage.lastModified)}</span>
                 </div>
               </div>
-              <div className="pt-2">
+
+              {(() => {
+                const embed = generateEmbedCode(selectedImage.url, getFileName(selectedImage.key));
+                return (
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">埋め込みコード</p>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => copyToClipboard(embed.url, "url")}
+                        className={`p-2 text-xs rounded-lg border transition-colors ${
+                          copiedType === "url"
+                            ? "bg-green-100 border-green-500 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-zinc-50 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 hover:border-blue-500"
+                        }`}
+                      >
+                        <span className="block font-medium mb-1">URL</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">
+                          {copiedType === "url" ? "コピーしました!" : "クリックでコピー"}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => copyToClipboard(embed.markdown, "markdown")}
+                        className={`p-2 text-xs rounded-lg border transition-colors ${
+                          copiedType === "markdown"
+                            ? "bg-green-100 border-green-500 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-zinc-50 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 hover:border-blue-500"
+                        }`}
+                      >
+                        <span className="block font-medium mb-1">Markdown</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">
+                          {copiedType === "markdown" ? "コピーしました!" : "クリックでコピー"}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => copyToClipboard(embed.htmlIcon, "icon")}
+                        className={`p-2 text-xs rounded-lg border transition-colors ${
+                          copiedType === "icon"
+                            ? "bg-green-100 border-green-500 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-zinc-50 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 hover:border-blue-500"
+                        }`}
+                      >
+                        <span className="block font-medium mb-1">アイコン用HTML</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">
+                          {copiedType === "icon" ? "コピーしました!" : "丸型・40px"}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => copyToClipboard(embed.htmlProduct, "product")}
+                        className={`p-2 text-xs rounded-lg border transition-colors ${
+                          copiedType === "product"
+                            ? "bg-green-100 border-green-500 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-zinc-50 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 hover:border-blue-500"
+                        }`}
+                      >
+                        <span className="block font-medium mb-1">商品用HTML</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">
+                          {copiedType === "product" ? "コピーしました!" : "角丸・レスポンシブ"}
+                        </span>
+                      </button>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-zinc-500 mb-1">プレビュー</p>
+                      <div className="flex items-center gap-4 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                        <div>
+                          <p className="text-xs text-zinc-400 mb-1">アイコン</p>
+                          <img
+                            src={selectedImage.url}
+                            alt="icon preview"
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-xs text-zinc-400 mb-1">商品</p>
+                          <img
+                            src={selectedImage.url}
+                            alt="product preview"
+                            className="w-24 h-24 rounded-lg object-cover"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="pt-2 flex gap-2">
                 <a
                   href={selectedImage.url}
                   target="_blank"
